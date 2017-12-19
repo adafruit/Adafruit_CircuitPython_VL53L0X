@@ -35,9 +35,13 @@ import math
 import time
 
 import adafruit_bus_device.i2c_device as i2c_device
+from micropython import const
 
+__version__ = "0.0.0-auto.0"
+__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X.git"
 
 # Configuration constants:
+# pylint: disable=bad-whitespace
 _SYSRANGE_START                              = const(0x00)
 _SYSTEM_THRESH_HIGH                          = const(0x0C)
 _SYSTEM_THRESH_LOW                           = const(0x0E)
@@ -96,26 +100,48 @@ _POWER_MANAGEMENT_GO1_POWER_FORCE            = const(0x80)
 _VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV           = const(0x89)
 _ALGO_PHASECAL_LIM                           = const(0x30)
 _ALGO_PHASECAL_CONFIG_TIMEOUT                = const(0x30)
-_VcselPeriodPreRange   = const(0)
-_VcselPeriodFinalRange = const(1)
+_VCSEL_PERIOD_PRE_RANGE   = const(0)
+_VCSEL_PERIOD_FINAL_RANGE = const(1)
+# pylint: enable=bad-whitespace
 
+
+def _decode_timeout(val):
+    # format: "(LSByte * 2^MSByte) + 1"
+    return float(val & 0xFF) * math.pow(2.0, ((val & 0xFF00) >> 8)) + 1
+
+def _encode_timeout(timeout_mclks):
+    # format: "(LSByte * 2^MSByte) + 1"
+    timeout_mclks = int(timeout_mclks) & 0xFFFF
+    ls_byte = 0
+    ms_byte = 0
+    if timeout_mclks > 0:
+        ls_byte = timeout_mclks - 1
+        while ls_byte > 255:
+            ls_byte >>= 1
+            ms_byte += 1
+        return ((ms_byte << 8) | (ls_byte & 0xFF)) & 0xFFFF
+    return 0
+
+def _timeout_mclks_to_microseconds(timeout_period_mclks, vcsel_period_pclks):
+    macro_period_ns = (((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000)
+    return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
 
 class VL53L0X:
-
+    """Driver for the VL53L0X distance sensor."""
     # Class-level buffer for reading and writing data with the sensor.
     # This reduces memory allocations but means the code is not re-entrant or
     # thread safe!
     _BUFFER = bytearray(3)
 
     def __init__(self, i2c, address=41, io_timeout_s=0):
+        # pylint: disable=too-many-statements
         self._device = i2c_device.I2CDevice(i2c, address)
         self.io_timeout_s = io_timeout_s
         # Check identification registers for expected values.
         # From section 3.2 of the datasheet.
-        if self._read_u8(0xC0) != 0xEE or \
-           self._read_u8(0xC1) != 0xAA or \
-           self._read_u8(0xC2) != 0x10:
-           raise RuntimeError('Failed to find expected ID register values. Check wiring!')
+        if (self._read_u8(0xC0) != 0xEE or self._read_u8(0xC1) != 0xAA or
+                self._read_u8(0xC2) != 0x10):
+            raise RuntimeError('Failed to find expected ID register values. Check wiring!')
         # Initialize access to the sensor.  This is based on the logic from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         # Set I2C standard mode.
@@ -333,40 +359,18 @@ class VL53L0X:
         self._write_u8(_SYSRANGE_START, 0x00)
 
     def _get_vcsel_pulse_period(self, vcsel_period_type):
-        if vcsel_period_type == _VcselPeriodPreRange:
+        if vcsel_period_type == _VCSEL_PERIOD_PRE_RANGE:
             val = self._read_u8(_PRE_RANGE_CONFIG_VCSEL_PERIOD)
-            return ((((val) + 1) & 0xFF) << 1)
-        elif vcsel_period_type == _VcselPeriodFinalRange:
+            return (((val) + 1) & 0xFF) << 1
+        elif vcsel_period_type == _VCSEL_PERIOD_FINAL_RANGE:
             val = self._read_u8(_FINAL_RANGE_CONFIG_VCSEL_PERIOD)
-            return ((((val) + 1) & 0xFF) << 1)
-        else:
-            return 255
-
-    def _timeout_mclks_to_microseconds(self, timeout_period_mclks, vcsel_period_pclks):
-        macro_period_ns = (((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000)
-        return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
-
-    def _decode_timeout(self, val):
-        # format: "(LSByte * 2^MSByte) + 1"
-        return float(val & 0xFF) * math.pow(2.0, ((val & 0xFF00) >> 8)) + 1
-
-    def _encode_timeout(self, timeout_mclks):
-        # format: "(LSByte * 2^MSByte) + 1"
-        timeout_mclks = int(timeout_mclks) & 0xFFFF
-        ls_byte = 0
-        ms_byte = 0
-        if timeout_mclks > 0:
-            ls_byte = timeout_mclks - 1
-            while ls_byte > 255:
-                ls_byte >>= 1
-                ms_byte += 1
-            return ((ms_byte << 8) | (ls_byte & 0xFF)) & 0xFFFF
-        else:
-            return 0
+            return (((val) + 1) & 0xFF) << 1
+        return 255
 
     def _get_sequence_step_enables(self):
         # based on VL53L0X_GetSequenceStepEnables() from ST API
         sequence_config = self._read_u8(_SYSTEM_SEQUENCE_CONFIG)
+        # pylint: disable=bad-whitespace
         tcc         = (sequence_config >> 4) & 0x1 > 0
         dss         = (sequence_config >> 3) & 0x1 > 0
         msrc        = (sequence_config >> 2) & 0x1 > 0
@@ -378,17 +382,23 @@ class VL53L0X:
         # based on get_sequence_step_timeout() from ST API but modified by
         # pololu here:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        pre_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VcselPeriodPreRange)
+        pre_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VCSEL_PERIOD_PRE_RANGE)
         msrc_dss_tcc_mclks = (self._read_u8(_MSRC_CONFIG_TIMEOUT_MACROP) + 1) & 0xFF
-        msrc_dss_tcc_us = self._timeout_mclks_to_microseconds(msrc_dss_tcc_mclks, pre_range_vcsel_period_pclks)
-        pre_range_mclks = self._decode_timeout(self._read_u16(_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI))
-        pre_range_us = self._timeout_mclks_to_microseconds(pre_range_mclks, pre_range_vcsel_period_pclks)
-        final_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VcselPeriodFinalRange)
-        final_range_mclks = self._decode_timeout(self._read_u16(_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI))
+        msrc_dss_tcc_us = _timeout_mclks_to_microseconds(
+            msrc_dss_tcc_mclks, pre_range_vcsel_period_pclks)
+        pre_range_mclks = _decode_timeout(self._read_u16(_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI))
+        pre_range_us = _timeout_mclks_to_microseconds(pre_range_mclks, pre_range_vcsel_period_pclks)
+        final_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VCSEL_PERIOD_FINAL_RANGE)
+        final_range_mclks = _decode_timeout(self._read_u16(_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI))
         if pre_range:
             final_range_mclks -= pre_range_mclks
-        final_range_us = self._timeout_mclks_to_microseconds(final_range_mclks, final_range_vcsel_period_pclks)
-        return (msrc_dss_tcc_us, pre_range_us, final_range_us, final_range_vcsel_period_pclks, pre_range_mclks)
+        final_range_us = _timeout_mclks_to_microseconds(
+            final_range_mclks, final_range_vcsel_period_pclks)
+        return (msrc_dss_tcc_us,
+                pre_range_us,
+                final_range_us,
+                final_range_vcsel_period_pclks,
+                pre_range_mclks)
 
     @property
     def signal_rate_limit(self):
@@ -409,7 +419,8 @@ class VL53L0X:
         """The measurement timing budget in microseconds."""
         budget_us = 1910 + 960  # Start overhead + end overhead.
         tcc, dss, msrc, pre_range, final_range = self._get_sequence_step_enables()
-        msrc_dss_tcc_us, pre_range_us, final_range_us, final_range_vcsel_period_pclks, pre_range_mclks = self._get_sequence_step_timeouts(pre_range)
+        step_timeouts = self._get_sequence_step_timeouts(pre_range)
+        msrc_dss_tcc_us, pre_range_us, final_range_us, _, _ = step_timeouts
         if tcc:
             budget_us += (msrc_dss_tcc_us + 590)
         if dss:
@@ -425,10 +436,13 @@ class VL53L0X:
 
     @measurement_timing_budget.setter
     def measurement_timing_budget(self, budget_us):
+        # pylint: disable=too-many-locals
         assert budget_us >= 20000
         used_budget_us = 1320 + 960  # Start (diff from get) + end overhead
         tcc, dss, msrc, pre_range, final_range = self._get_sequence_step_enables()
-        msrc_dss_tcc_us, pre_range_us, final_range_us, final_range_vcsel_period_pclks, pre_range_mclks = self._get_sequence_step_timeouts(pre_range)
+        step_timeouts = self._get_sequence_step_timeouts(pre_range)
+        msrc_dss_tcc_us, pre_range_us, _ = step_timeouts[:3]
+        final_range_vcsel_period_pclks, pre_range_mclks = step_timeouts[3:]
         if tcc:
             used_budget_us += (msrc_dss_tcc_us + 590)
         if dss:
@@ -447,11 +461,13 @@ class VL53L0X:
             if used_budget_us > budget_us:
                 raise ValueError('Requested timeout too big.')
             final_range_timeout_us = budget_us - used_budget_us
-            final_range_timeout_mclks = self._timeout_mclks_to_microseconds(final_range_timeout_us, final_range_vcsel_period_pclks)
+            final_range_timeout_mclks = _timeout_mclks_to_microseconds(
+                final_range_timeout_us,
+                final_range_vcsel_period_pclks)
             if pre_range:
                 final_range_timeout_mclks += pre_range_mclks
             self._write_u16(_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI,
-                            self._encode_timeout(final_range_timeout_mclks))
+                            _encode_timeout(final_range_timeout_mclks))
             self._measurement_timing_budget_us = budget_us
 
     @property
