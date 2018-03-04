@@ -25,9 +25,9 @@
 
 CircuitPython driver for the VL53L0X distance sensor.  This code is adapted
 from the pololu driver here:
-  https://github.com/pololu/vl53l0x-arduino
+https://github.com/pololu/vl53l0x-arduino
 
-See usage in the examples/simpletest.py file.
+See usage in the examples/vl53l0x_simpletest.py file.
 
 * Author(s): Tony DiCola
 
