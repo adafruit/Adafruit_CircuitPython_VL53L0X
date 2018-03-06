@@ -25,11 +25,25 @@
 
 CircuitPython driver for the VL53L0X distance sensor.  This code is adapted
 from the pololu driver here:
-  https://github.com/pololu/vl53l0x-arduino
+https://github.com/pololu/vl53l0x-arduino
 
-See usage in the examples/simpletest.py file.
+See usage in the examples/vl53l0x_simpletest.py file.
 
 * Author(s): Tony DiCola
+
+Implementation Notes
+--------------------
+
+**Hardware:**
+
+* Adafruit `VL53L0X Time of Flight Distance Sensor - ~30 to 1000mm
+  <https://www.adafruit.com/product/3317>`_ (Product ID: 3317)
+
+**Software and Dependencies:**
+
+* Adafruit CircuitPython firmware for the ESP8622 and M0-based boards:
+  https://github.com/adafruit/circuitpython/releases
+* Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
 """
 import math
 import time
