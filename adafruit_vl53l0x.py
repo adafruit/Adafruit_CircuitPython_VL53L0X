@@ -373,6 +373,8 @@ class VL53L0X:
         self._write_u8(_SYSRANGE_START, 0x00)
 
     def _get_vcsel_pulse_period(self, vcsel_period_type):
+        # pylint: disable=no-else-return
+        # Disable should be removed when refactor can be tested
         if vcsel_period_type == _VCSEL_PERIOD_PRE_RANGE:
             val = self._read_u8(_PRE_RANGE_CONFIG_VCSEL_PERIOD)
             return (((val) + 1) & 0xFF) << 1
