@@ -140,6 +140,10 @@ def _timeout_mclks_to_microseconds(timeout_period_mclks, vcsel_period_pclks):
     macro_period_ns = (((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000)
     return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
 
+def _timeout_microseconds_to_mclks(timeout_period_us, vcsel_period_pclks):
+    macro_period_ns = (((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000)
+    return ((timeout_period_us * 1000) + (macro_period_ns // 2)) // macro_period_ns
+
 class VL53L0X:
     """Driver for the VL53L0X distance sensor."""
     # Class-level buffer for reading and writing data with the sensor.
@@ -477,7 +481,7 @@ class VL53L0X:
             if used_budget_us > budget_us:
                 raise ValueError('Requested timeout too big.')
             final_range_timeout_us = budget_us - used_budget_us
-            final_range_timeout_mclks = _timeout_mclks_to_microseconds(
+            final_range_timeout_mclks = _timeout_microseconds_to_mclks(
                 final_range_timeout_us,
                 final_range_vcsel_period_pclks)
             if pre_range:
