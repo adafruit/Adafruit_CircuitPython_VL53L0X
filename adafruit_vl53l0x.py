@@ -279,16 +279,12 @@ class VL53L0X:
         # Get reference SPAD count and type, returned as a 2-tuple of
         # count and boolean is_aperture.  Based on code from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
-        self._write_u8(0xFF, 0x06)
+        for pair in ((0x80, 0x01), (0xFF, 0x01), (0x00, 0x00), (0xFF, 0x06)):
+            self._write_u8(pair[0], pair[1])
         self._write_u8(0x83, self._read_u8(0x83) | 0x04)
-        self._write_u8(0xFF, 0x07)
-        self._write_u8(0x81, 0x01)
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0x94, 0x6b)
-        self._write_u8(0x83, 0x00)
+        for pair in ((0xFF, 0x07), (0x81, 0x01), (0x80, 0x01),
+                     (0x94, 0x6b), (0x83, 0x00)):
+            self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while self._read_u8(0x83) == 0x00:
             if self.io_timeout_s > 0 and \
@@ -298,13 +294,11 @@ class VL53L0X:
         tmp = self._read_u8(0x92)
         count = tmp & 0x7F
         is_aperture = ((tmp >> 7) & 0x01) == 1
-        self._write_u8(0x81, 0x00)
-        self._write_u8(0xFF, 0x06)
+        for pair in ((0x81, 0x00), (0xFF, 0x06)):
+            self._write_u8(pair[0], pair[1])
         self._write_u8(0x83, self._read_u8(0x83) & ~0x04)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
+        for pair in ((0xFF, 0x01), (0x00, 0x01), (0xFF, 0x00), (0x80, 0x00)):
+            self._write_u8(pair[0], pair[1])
         return (count, is_aperture)
 
     def _perform_single_ref_calibration(self, vhv_init_byte):
@@ -440,14 +434,10 @@ class VL53L0X:
         # Adapted from readRangeSingleMillimeters &
         # readRangeContinuousMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
-        self._write_u8(0x91, self._stop_variable)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
-        self._write_u8(_SYSRANGE_START, 0x01)
+        for pair in ((0x80, 0x01), (0xFF, 0x01), (0x00, 0x00),
+                     (0x91, self._stop_variable), (0x00, 0x01), (0xFF, 0x00),
+                     (0x80, 0x00), (_SYSRANGE_START, 0x01)):
+            self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
             if self.io_timeout_s > 0 and \
