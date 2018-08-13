@@ -163,14 +163,11 @@ class VL53L0X:
         # Initialize access to the sensor.  This is based on the logic from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         # Set I2C standard mode.
-        self._write_u8(0x88, 0x00)
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
+        for pair in ((0x88, 0x00), (0x80, 0x01), (0xFF, 0x01), (0x00, 0x00)):
+            self._write_u8(pair[0], pair[1])
         self._stop_variable = self._read_u8(0x91)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
+        for pair in ((0x00, 0x01), (0xFF, 0x00), (0x80, 0x00)):
+            self._write_u8(pair[0], pair[1])
         # disable SIGNAL_RATE_MSRC (bit 1) and SIGNAL_RATE_PRE_RANGE (bit 4)
         # limit checks
         config_control = self._read_u8(_MSRC_CONFIG_CONTROL) | 0x12
@@ -189,11 +186,14 @@ class VL53L0X:
         with self._device:
             self._device.write(ref_spad_map, end=1)
             self._device.readinto(ref_spad_map, start=1)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(_DYNAMIC_SPAD_REF_EN_START_OFFSET, 0x00)
-        self._write_u8(_DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD, 0x2C)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(_GLOBAL_CONFIG_REF_EN_START_SELECT, 0xB4)
+
+        for pair in ((0xFF, 0x01),
+                     (_DYNAMIC_SPAD_REF_EN_START_OFFSET, 0x00),
+                     (_DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD, 0x2C),
+                     (0xFF, 0x00),
+                     (_GLOBAL_CONFIG_REF_EN_START_SELECT, 0xB4)):
+            self._write_u8(pair[0], pair[1])
+
         first_spad_to_enable = 12 if spad_is_aperture else 0
         spads_enabled = 0
         for i in range(48):
@@ -206,86 +206,28 @@ class VL53L0X:
                 spads_enabled += 1
         with self._device:
             self._device.write(ref_spad_map)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x09, 0x00)
-        self._write_u8(0x10, 0x00)
-        self._write_u8(0x11, 0x00)
-        self._write_u8(0x24, 0x01)
-        self._write_u8(0x25, 0xFF)
-        self._write_u8(0x75, 0x00)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x4E, 0x2C)
-        self._write_u8(0x48, 0x00)
-        self._write_u8(0x30, 0x20)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x30, 0x09)
-        self._write_u8(0x54, 0x00)
-        self._write_u8(0x31, 0x04)
-        self._write_u8(0x32, 0x03)
-        self._write_u8(0x40, 0x83)
-        self._write_u8(0x46, 0x25)
-        self._write_u8(0x60, 0x00)
-        self._write_u8(0x27, 0x00)
-        self._write_u8(0x50, 0x06)
-        self._write_u8(0x51, 0x00)
-        self._write_u8(0x52, 0x96)
-        self._write_u8(0x56, 0x08)
-        self._write_u8(0x57, 0x30)
-        self._write_u8(0x61, 0x00)
-        self._write_u8(0x62, 0x00)
-        self._write_u8(0x64, 0x00)
-        self._write_u8(0x65, 0x00)
-        self._write_u8(0x66, 0xA0)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x22, 0x32)
-        self._write_u8(0x47, 0x14)
-        self._write_u8(0x49, 0xFF)
-        self._write_u8(0x4A, 0x00)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x7A, 0x0A)
-        self._write_u8(0x7B, 0x00)
-        self._write_u8(0x78, 0x21)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x23, 0x34)
-        self._write_u8(0x42, 0x00)
-        self._write_u8(0x44, 0xFF)
-        self._write_u8(0x45, 0x26)
-        self._write_u8(0x46, 0x05)
-        self._write_u8(0x40, 0x40)
-        self._write_u8(0x0E, 0x06)
-        self._write_u8(0x20, 0x1A)
-        self._write_u8(0x43, 0x40)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x34, 0x03)
-        self._write_u8(0x35, 0x44)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x31, 0x04)
-        self._write_u8(0x4B, 0x09)
-        self._write_u8(0x4C, 0x05)
-        self._write_u8(0x4D, 0x04)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x44, 0x00)
-        self._write_u8(0x45, 0x20)
-        self._write_u8(0x47, 0x08)
-        self._write_u8(0x48, 0x28)
-        self._write_u8(0x67, 0x00)
-        self._write_u8(0x70, 0x04)
-        self._write_u8(0x71, 0x01)
-        self._write_u8(0x72, 0xFE)
-        self._write_u8(0x76, 0x00)
-        self._write_u8(0x77, 0x00)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x0D, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0x01, 0xF8)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x8E, 0x01)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
+        for pair in ((0xFF, 0x01), (0x00, 0x00), (0xFF, 0x00), (0x09, 0x00),
+                     (0x10, 0x00), (0x11, 0x00), (0x24, 0x01), (0x25, 0xFF),
+                     (0x75, 0x00), (0xFF, 0x01), (0x4E, 0x2C), (0x48, 0x00),
+                     (0x30, 0x20), (0xFF, 0x00), (0x30, 0x09), (0x54, 0x00),
+                     (0x31, 0x04), (0x32, 0x03), (0x40, 0x83), (0x46, 0x25),
+                     (0x60, 0x00), (0x27, 0x00), (0x50, 0x06), (0x51, 0x00),
+                     (0x52, 0x96), (0x56, 0x08), (0x57, 0x30), (0x61, 0x00),
+                     (0x62, 0x00), (0x64, 0x00), (0x65, 0x00), (0x66, 0xA0),
+                     (0xFF, 0x01), (0x22, 0x32), (0x47, 0x14), (0x49, 0xFF),
+                     (0x4A, 0x00), (0xFF, 0x00), (0x7A, 0x0A), (0x7B, 0x00),
+                     (0x78, 0x21), (0xFF, 0x01), (0x23, 0x34), (0x42, 0x00),
+                     (0x44, 0xFF), (0x45, 0x26), (0x46, 0x05), (0x40, 0x40),
+                     (0x0E, 0x06), (0x20, 0x1A), (0x43, 0x40), (0xFF, 0x00),
+                     (0x34, 0x03), (0x35, 0x44), (0xFF, 0x01), (0x31, 0x04),
+                     (0x4B, 0x09), (0x4C, 0x05), (0x4D, 0x04), (0xFF, 0x00),
+                     (0x44, 0x00), (0x45, 0x20), (0x47, 0x08), (0x48, 0x28),
+                     (0x67, 0x00), (0x70, 0x04), (0x71, 0x01), (0x72, 0xFE),
+                     (0x76, 0x00), (0x77, 0x00), (0xFF, 0x01), (0x0D, 0x01),
+                     (0xFF, 0x00), (0x80, 0x01), (0x01, 0xF8), (0xFF, 0x01),
+                     (0x8E, 0x01), (0x00, 0x01), (0xFF, 0x00), (0x80, 0x00)):
+            self._write_u8(pair[0], pair[1])
+
         self._write_u8(_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x04)
         gpio_hv_mux_active_high = self._read_u8(_GPIO_HV_MUX_ACTIVE_HIGH)
         self._write_u8(_GPIO_HV_MUX_ACTIVE_HIGH,
@@ -337,16 +279,12 @@ class VL53L0X:
         # Get reference SPAD count and type, returned as a 2-tuple of
         # count and boolean is_aperture.  Based on code from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
-        self._write_u8(0xFF, 0x06)
+        for pair in ((0x80, 0x01), (0xFF, 0x01), (0x00, 0x00), (0xFF, 0x06)):
+            self._write_u8(pair[0], pair[1])
         self._write_u8(0x83, self._read_u8(0x83) | 0x04)
-        self._write_u8(0xFF, 0x07)
-        self._write_u8(0x81, 0x01)
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0x94, 0x6b)
-        self._write_u8(0x83, 0x00)
+        for pair in ((0xFF, 0x07), (0x81, 0x01), (0x80, 0x01),
+                     (0x94, 0x6b), (0x83, 0x00)):
+            self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while self._read_u8(0x83) == 0x00:
             if self.io_timeout_s > 0 and \
@@ -356,13 +294,11 @@ class VL53L0X:
         tmp = self._read_u8(0x92)
         count = tmp & 0x7F
         is_aperture = ((tmp >> 7) & 0x01) == 1
-        self._write_u8(0x81, 0x00)
-        self._write_u8(0xFF, 0x06)
+        for pair in ((0x81, 0x00), (0xFF, 0x06)):
+            self._write_u8(pair[0], pair[1])
         self._write_u8(0x83, self._read_u8(0x83) & ~0x04)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
+        for pair in ((0xFF, 0x01), (0x00, 0x01), (0xFF, 0x00), (0x80, 0x00)):
+            self._write_u8(pair[0], pair[1])
         return (count, is_aperture)
 
     def _perform_single_ref_calibration(self, vhv_init_byte):
@@ -498,14 +434,10 @@ class VL53L0X:
         # Adapted from readRangeSingleMillimeters &
         # readRangeContinuousMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        self._write_u8(0x80, 0x01)
-        self._write_u8(0xFF, 0x01)
-        self._write_u8(0x00, 0x00)
-        self._write_u8(0x91, self._stop_variable)
-        self._write_u8(0x00, 0x01)
-        self._write_u8(0xFF, 0x00)
-        self._write_u8(0x80, 0x00)
-        self._write_u8(_SYSRANGE_START, 0x01)
+        for pair in ((0x80, 0x01), (0xFF, 0x01), (0x00, 0x00),
+                     (0x91, self._stop_variable), (0x00, 0x01), (0xFF, 0x00),
+                     (0x80, 0x00), (_SYSRANGE_START, 0x01)):
+            self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
             if self.io_timeout_s > 0 and \
