@@ -28,7 +28,7 @@ setup(
     long_description_content_type='text/x-rst',
 
     # The project's main homepage.
-    url='https://github.com/adafruit/Adafruit_CircuitPython_DRV2605',
+    url='https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X',
 
     # Author details
     author='Adafruit Industries',
