@@ -16,8 +16,8 @@ i2c = board.I2C()
 # declare the digital output pins connected to the "SHDN" pin on each VL53L0X sensor
 xshut = [
     DigitalInOut(board.D7),
-    DigitalInOut(board.D9)
-    # add more sensors by defining their SHDN pins here
+    DigitalInOut(board.D9),
+    # add more VL53L0X sensors by defining their SHDN pins here
     ]
 
 for power_pin in xshut:
@@ -33,11 +33,11 @@ vl53 = []
 
 # now change the addresses of the VL53L0X sensors
 for i, power_pin in enumerate(xshut):
-    # turn on the sensor to allow hardware check
+    # turn on the VL53L0X to allow hardware check
     power_pin.value = True
-    # instantiate the VL53L0X sensors on the I2C bus & insert it into the "vl53" list
-    vl53.insert(i, VL53L0X(i2c)) # also performs hardware check
-    # don't need to change the address of the last VL53L0X sensor
+    # instantiate the VL53L0X sensor on the I2C bus & insert it into the "vl53" list
+    vl53.insert(i, VL53L0X(i2c)) # also performs VL53L0X hardware check
+    # no need to change the address of the last VL53L0X sensor
     if i < len(xshut) - 1:
         # default address is 0x29. Change that to something else
         vl53[i].set_address(i + 0x30) # address assigned should NOT be already in use
@@ -46,11 +46,11 @@ for i, power_pin in enumerate(xshut):
 # According to this list 0x30-0x34 are available, although the list may be incomplete.
 # In the python REPR, you can scan for all I2C devices that are attached and detirmine
 # their addresses using:
-#   >>> import busio
-#   >>> i2c = busio.I2C(board.SCL, board.SDA)
-#   >>> if i2c.try_lock(): # i2c.scan() requires a lock on the I2C bus
+#   >>> import board
+#   >>> i2c = board.I2C()
+#   >>> if i2c.try_lock():
 #   >>>     [hex(x) for x in i2c.scan()]
-#   >>>     i2c.unlock() # free up the bus for something else to use it
+#   >>>     i2c.unlock()
 
 def detect_range(count=5):
     """ take count=5 samples """
