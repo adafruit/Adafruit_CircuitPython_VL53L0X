@@ -453,3 +453,21 @@ class VL53L0X:
         range_mm = self._read_u16(_RESULT_RANGE_STATUS + 10)
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         return range_mm
+
+    def set_address(self, new_address):
+        """Set a new I2C address to the instantaited object. This is only called when using
+        multiple VL53L0X sensors on the same I2C bus (SDA & SCL pins). See also the
+        `example <examples.html#multiple-vl53l0x-on-same-i2c-bus>`_ for proper usage.
+
+        :param int new_address: The 8-bit `int` that is to be assigned to the VL53L0X sensor.
+            The address that is assigned should NOT be already in use by another device on the
+            I2C bus.
+
+        .. important:: To properly set the address to an individual VL53L0X sensor, you must
+            first ensure that all other VL53L0X sensors on the same I2C bus are in their off state
+            by pulling the "SHDN" pins LOW. When the "SHDN" pin is pulled HIGH again the
+            default I2C address is 0x29. The "SHDN" pin is usually labeled "XSHUT" on
+            non-Adafruit breakout boards.
+        """
+        self._write_u8(_I2C_SLAVE_DEVICE_ADDRESS, new_address & 0x7f)
+        self._device.device_address = new_address
