@@ -10,8 +10,8 @@ Introduction
     :target: https://discord.gg/nBQh6qu
     :alt: Discord
 
-.. image:: https://travis-ci.com/adafruit/Adafruit_CircuitPython_VL53L0X.svg?branch=master
-    :target: https://travis-ci.com/adafruit/Adafruit_CircuitPython_VL53L0X
+.. image:: https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X/workflows/Build%20CI/badge.svg
+    :target: https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X/actions/
     :alt: Build Status
 
 CircuitPython driver for the VL53L0X distance sensor.
