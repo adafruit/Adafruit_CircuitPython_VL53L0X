@@ -45,7 +45,6 @@ Implementation Notes
   https://github.com/adafruit/circuitpython/releases
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
 """
-import atexit
 import math
 import time
 
@@ -321,7 +320,6 @@ class VL53L0X:
         self._perform_single_ref_calibration(0x00)
         # "restore the previous Sequence Config"
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
-        atexit.register(self._cleanup)
 
     def _read_u8(self, address):
         # Read an 8-bit unsigned value from the specified 8-bit address.
@@ -458,11 +456,6 @@ class VL53L0X:
             pre_range_mclks,
         )
 
-    def _cleanup(self):
-        #when exiting, don't forget to also turn off continuous mode
-        if (self._continuous_mode):
-            self.stopContinuous()
-
     @property
     def signal_rate_limit(self):
         """The signal rate limit in mega counts per second."""
@@ -537,17 +530,17 @@ class VL53L0X:
 
     @property
     def range(self):
-        """Perform a single (or continuous if `startContinuous` called)
+        """Perform a single (or continuous if `start_continuous` called)
         reading of the range for an object in front of the sensor and
         return the distance in millimeters.
         """
         # Adapted from readRangeSingleMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        if (not self._continuous_mode):
-            self.doRangeMeasurement()
-        return self.readRange()
+        if not self._continuous_mode:
+            self.do_range_measurement()
+        return self.read_range()
 
-    def doRangeMeasurement(self):
+    def do_range_measurement(self):
         """Perform a single reading of the range for an object in front of the
         sensor, but without return the distance.
         """
@@ -572,11 +565,11 @@ class VL53L0X:
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
-    def readRange(self):
+    def read_range(self):
         """Return a range reading in millimeters.
 
         Note: Avoid calling this directly. If you do single mode, you need
-        to call doRangeMeasurement first. Or your program will stuck or
+        to call `do_range_measurement` first. Or your program will stuck or
         timeout occurred.
         """
         # Adapted from readRangeContinuousMillimeters in pololu code at:
@@ -596,16 +589,17 @@ class VL53L0X:
 
     @property
     def continuous_mode(self):
+        """Is the sensor currently in continuous mode?"""
         return self._continuous_mode
 
     @continuous_mode.setter
     def continuous_mode(self, enabled):
-        if (enabled):
-            self.startContinuous()
+        if enabled:
+            self.start_continuous()
         else:
-            self.stopContinuous()
+            self.stop_continuous()
 
-    def startContinuous(self):
+    def start_continuous(self):
         """Perform a continuous reading of the range for an object in front of
         the sensor.
         """
@@ -631,7 +625,7 @@ class VL53L0X:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._continuous_mode = True
 
-    def stopContinuous(self):
+    def stop_continuous(self):
         """Stop continuous readings.
         """
         # Adapted from stopContinuous in pololu code at:
@@ -642,7 +636,7 @@ class VL53L0X:
             (0x00, 0x00),
             (0x91, 0x00),
             (0x00, 0x01),
-            (0xFF, 0x00)
+            (0xFF, 0x00),
         ):
             self._write_u8(pair[0], pair[1])
         self._continuous_mode = False

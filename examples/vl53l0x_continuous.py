@@ -49,16 +49,16 @@ for i, power_pin in enumerate(xshut):
     # turn on the VL53L0X to allow hardware check
     power_pin.value = True
     # instantiate the VL53L0X sensor on the I2C bus & insert it into the "vl53" list
-    vl53.insert(i, VL53L0X(i2c))    # also performs VL53L0X hardware check
+    vl53.insert(i, VL53L0X(i2c))  # also performs VL53L0X hardware check
 
     # start continous mode
     vl53[i].continuous_mode = True
     # or alternatively with this
-    # vl53[i].startContinous()
+    # vl53[i].start_continous()
 
     # you will see the benefit of continous mode if you set the measurement timing
     # budget very high.
-    #vl53[i].measurement_timing_budget = 2000000
+    # vl53[i].measurement_timing_budget = 2000000
 
     # no need to change the address of the last VL53L0X sensor
     if i < len(xshut) - 1:
@@ -75,6 +75,7 @@ for i, power_pin in enumerate(xshut):
 #   >>>     [hex(x) for x in i2c.scan()]
 #   >>>     i2c.unlock()
 
+
 def detect_range(count=5):
     """ take count=5 samples """
     while count:
@@ -83,10 +84,22 @@ def detect_range(count=5):
         time.sleep(1.0)
         count -= 1
 
+
+def stop_continuous():
+    """ this is not required, unless if you want to save some energy """
+    for sensor in vl53:
+        sensor.continuous_mode = False
+        # or alternatively with this
+        # sensor.stop_continuous()
+
+
 if __name__ == "__main__":
     detect_range()
+    stop_continuous()
 else:
     print(
         "Multiple VL53L0X sensors' addresses are assigned properly\n"
-        "execute detect_range() to read each sensors range readings"
+        "execute detect_range() to read each sensors range readings.\n"
+        "When you are done with readings, execute stop_continuous()\n"
+        "to stop the continuous mode."
     )
