@@ -55,7 +55,6 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X.git"
 
 # Configuration constants:
-# pylint: disable=bad-whitespace
 _SYSRANGE_START = const(0x00)
 _SYSTEM_THRESH_HIGH = const(0x0C)
 _SYSTEM_THRESH_LOW = const(0x0E)
@@ -116,7 +115,6 @@ _ALGO_PHASECAL_LIM = const(0x30)
 _ALGO_PHASECAL_CONFIG_TIMEOUT = const(0x30)
 _VCSEL_PERIOD_PRE_RANGE = const(0)
 _VCSEL_PERIOD_FINAL_RANGE = const(1)
-# pylint: enable=bad-whitespace
 
 
 def _decode_timeout(val):
@@ -409,7 +407,6 @@ class VL53L0X:
     def _get_sequence_step_enables(self):
         # based on VL53L0X_GetSequenceStepEnables() from ST API
         sequence_config = self._read_u8(_SYSTEM_SEQUENCE_CONFIG)
-        # pylint: disable=bad-whitespace
         tcc = (sequence_config >> 4) & 0x1 > 0
         dss = (sequence_config >> 3) & 0x1 > 0
         msrc = (sequence_config >> 2) & 0x1 > 0
