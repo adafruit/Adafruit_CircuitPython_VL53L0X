@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 """
 Example of how to use the adafruit_vl53l0x library to change the assigned address of
 multiple VL53L0X sensors on the same I2C bus. This example only focuses on 2 VL53L0X
