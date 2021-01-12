@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 # Simple demo of the VL53L0X distance sensor.
 # Will print the sensed range/distance every second.
 import time
