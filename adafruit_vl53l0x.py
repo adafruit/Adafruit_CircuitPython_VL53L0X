@@ -139,6 +139,7 @@ class VL53L0X:
 
     def __init__(self, i2c, address=41, io_timeout_s=0):
         # pylint: disable=too-many-statements
+        self._i2c = i2c
         self._device = i2c_device.I2CDevice(i2c, address)
         self.io_timeout_s = io_timeout_s
         # Check identification registers for expected values.
@@ -559,4 +560,4 @@ class VL53L0X:
             "SHDN" pin is pulled HIGH again the default I2C address is ``0x29``.
         """
         self._write_u8(_I2C_SLAVE_DEVICE_ADDRESS, new_address & 0x7F)
-        self._device.device_address = new_address
+        self._device = i2c_device.I2CDevice(self._i2c, new_address)
