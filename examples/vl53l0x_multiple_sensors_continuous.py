@@ -52,9 +52,7 @@ for i, power_pin in enumerate(xshut):
     vl53.insert(i, VL53L0X(i2c))  # also performs VL53L0X hardware check
 
     # start continous mode
-    vl53[i].continuous_mode = True
-    # or alternatively with this
-    # vl53[i].start_continous()
+    vl53[i].start_continous()
 
     # you will see the benefit of continous mode if you set the measurement timing
     # budget very high.
@@ -86,11 +84,11 @@ def detect_range(count=5):
 
 
 def stop_continuous():
-    """ this is not required, unless if you want to save some energy """
+    """ this is not required, if you use XSHUT to reset the sensor.
+    unless if you want to save some energy
+    """
     for sensor in vl53:
-        sensor.continuous_mode = False
-        # or alternatively with this
-        # sensor.stop_continuous()
+        sensor.stop_continuous()
 
 
 if __name__ == "__main__":

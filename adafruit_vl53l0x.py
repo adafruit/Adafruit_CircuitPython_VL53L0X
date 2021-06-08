@@ -588,16 +588,26 @@ class VL53L0X:
         return range_mm
 
     @property
-    def continuous_mode(self):
-        """Is the sensor currently in continuous mode?"""
+    def is_continuous_mode(self):
+        """Is the sensor currently in continuous mode?
+        """
         return self._continuous_mode
 
-    @continuous_mode.setter
-    def continuous_mode(self, enabled):
-        if enabled:
-            self.start_continuous()
-        else:
-            self.stop_continuous()
+    def continuous_mode(self):
+        """Create a new context manager to manage the continuous mode
+        """
+        class continuous_manager:
+            def __init__(self, driver):
+                self.driver = driver
+
+            def __enter__(self):
+                self.driver.start_continuous()
+                return self.driver
+
+            def __exit__(self, exc_type, exc_value, tb):
+                self.driver.stop_continuous()
+
+        return continuous_manager(self)
 
     def start_continuous(self):
         """Perform a continuous reading of the range for an object in front of
@@ -640,6 +650,9 @@ class VL53L0X:
         ):
             self._write_u8(pair[0], pair[1])
         self._continuous_mode = False
+
+        # restore the sensor to single ranging mode
+        self.do_range_measurement()
 
     def set_address(self, new_address):
         """Set a new I2C address to the instantaited object. This is only called when using
