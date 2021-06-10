@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 Smankusors for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 # Simple demo of the VL53L0X distance sensor with continuous mode.
 # Will print the sensed range/distance as fast as possible.
 import time

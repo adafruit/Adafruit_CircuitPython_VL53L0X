@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 Smankusors for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 """
 Example of how to use the adafruit_vl53l0x library to change the assigned address of
 multiple VL53L0X sensors on the same I2C bus. This example only focuses on 2 VL53L0X
@@ -84,7 +87,7 @@ def detect_range(count=5):
 
 
 def stop_continuous():
-    """ this is not required, if you use XSHUT to reset the sensor.
+    """this is not required, if you use XSHUT to reset the sensor.
     unless if you want to save some energy
     """
     for sensor in vl53:

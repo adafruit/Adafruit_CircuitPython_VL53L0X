@@ -589,25 +589,21 @@ class VL53L0X:
 
     @property
     def is_continuous_mode(self):
-        """Is the sensor currently in continuous mode?
-        """
+        """Is the sensor currently in continuous mode?"""
         return self._continuous_mode
 
     def continuous_mode(self):
-        """Create a new context manager to manage the continuous mode
-        """
-        class continuous_manager:
-            def __init__(self, driver):
-                self.driver = driver
+        """Activate the continuous mode manager"""
+        return self
 
-            def __enter__(self):
-                self.driver.start_continuous()
-                return self.driver
+    def __enter__(self):
+        """For continuous mode manager, called when used on `with` keyword"""
+        self.start_continuous()
+        return self
 
-            def __exit__(self, exc_type, exc_value, tb):
-                self.driver.stop_continuous()
-
-        return continuous_manager(self)
+    def __exit__(self, exc_type, exc_value, traceback):
+        """For continuous mode manager, called at the end of `with` scope"""
+        self.stop_continuous()
 
     def start_continuous(self):
         """Perform a continuous reading of the range for an object in front of
@@ -636,8 +632,7 @@ class VL53L0X:
         self._continuous_mode = True
 
     def stop_continuous(self):
-        """Stop continuous readings.
-        """
+        """Stop continuous readings."""
         # Adapted from stopContinuous in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         for pair in (
