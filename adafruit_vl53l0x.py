@@ -507,6 +507,13 @@ class VL53L0X:
             self._measurement_timing_budget_us = budget_us
 
     @property
+    def distance(self):
+        """Perform a single reading of the range for an object in front of
+        the sensor and return the distance in centimeters.
+        """
+        return self.range / 10
+
+    @property
     def range(self):
         """Perform a single reading of the range for an object in front of
         the sensor and return the distance in millimeters.
