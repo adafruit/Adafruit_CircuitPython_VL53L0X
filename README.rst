@@ -57,6 +57,11 @@ Usage Example
 
 See usage in the examples/vl53l0x_simpletest.py file.
 
+Documentation
+=============
+
+API documentation for this library can be found on `Read the Docs <https://circuitpython.readthedocs.io/projects/vl53l0x/en/latest/>`_.
+
 Contributing
 ============
 
