@@ -137,6 +137,9 @@ class VL53L0X:
     # thread safe!
     _BUFFER = bytearray(3)
 
+    # Is VL53L0X is currently continuous mode? (Needed by `range` property)
+    _continuous_mode = False
+
     def __init__(self, i2c, address=41, io_timeout_s=0):
         # pylint: disable=too-many-statements
         self._i2c = i2c
@@ -515,11 +518,21 @@ class VL53L0X:
 
     @property
     def range(self):
-        """Perform a single reading of the range for an object in front of
-        the sensor and return the distance in millimeters.
+        """Perform a single (or continuous if `start_continuous` called)
+        reading of the range for an object in front of the sensor and
+        return the distance in millimeters.
         """
-        # Adapted from readRangeSingleMillimeters &
-        # readRangeContinuousMillimeters in pololu code at:
+        # Adapted from readRangeSingleMillimeters in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
+        if not self._continuous_mode:
+            self.do_range_measurement()
+        return self.read_range()
+
+    def do_range_measurement(self):
+        """Perform a single reading of the range for an object in front of the
+        sensor, but without return the distance.
+        """
+        # Adapted from readRangeSingleMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         for pair in (
             (0x80, 0x01),
@@ -539,6 +552,16 @@ class VL53L0X:
                 and (time.monotonic() - start) >= self.io_timeout_s
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
+
+    def read_range(self):
+        """Return a range reading in millimeters.
+
+        Note: Avoid calling this directly. If you do single mode, you need
+        to call `do_range_measurement` first. Or your program will stuck or
+        timeout occurred.
+        """
+        # Adapted from readRangeContinuousMillimeters in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         start = time.monotonic()
         while (self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07) == 0:
             if (
@@ -551,6 +574,68 @@ class VL53L0X:
         range_mm = self._read_u16(_RESULT_RANGE_STATUS + 10)
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         return range_mm
+
+    @property
+    def is_continuous_mode(self):
+        """Is the sensor currently in continuous mode?"""
+        return self._continuous_mode
+
+    def continuous_mode(self):
+        """Activate the continuous mode manager"""
+        return self
+
+    def __enter__(self):
+        """For continuous mode manager, called when used on `with` keyword"""
+        self.start_continuous()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """For continuous mode manager, called at the end of `with` scope"""
+        self.stop_continuous()
+
+    def start_continuous(self):
+        """Perform a continuous reading of the range for an object in front of
+        the sensor.
+        """
+        # Adapted from startContinuous in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
+        for pair in (
+            (0x80, 0x01),
+            (0xFF, 0x01),
+            (0x00, 0x00),
+            (0x91, self._stop_variable),
+            (0x00, 0x01),
+            (0xFF, 0x00),
+            (0x80, 0x00),
+            (_SYSRANGE_START, 0x02),
+        ):
+            self._write_u8(pair[0], pair[1])
+        start = time.monotonic()
+        while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
+            if (
+                self.io_timeout_s > 0
+                and (time.monotonic() - start) >= self.io_timeout_s
+            ):
+                raise RuntimeError("Timeout waiting for VL53L0X!")
+        self._continuous_mode = True
+
+    def stop_continuous(self):
+        """Stop continuous readings."""
+        # Adapted from stopContinuous in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
+        for pair in (
+            (_SYSRANGE_START, 0x01),
+            (0xFF, 0x01),
+            (0x00, 0x00),
+            (0x91, 0x00),
+            (0x00, 0x01),
+            (0xFF, 0x00),
+        ):
+            self._write_u8(pair[0], pair[1])
+        self._continuous_mode = False
+
+        # restore the sensor to single ranging mode
+        self.do_range_measurement()
 
     def set_address(self, new_address):
         """Set a new I2C address to the instantaited object. This is only called when using
