@@ -3,7 +3,7 @@ Introduction
 ============
 
 .. image:: https://readthedocs.org/projects/adafruit-circuitpython-vl53l0x/badge/?version=latest
-    :target: https://circuitpython.readthedocs.io/projects/vl53l0x/en/latest/
+    :target: https://docs.circuitpython.org/projects/vl53l0x/en/latest/
     :alt: Documentation Status
 
 .. image :: https://img.shields.io/discord/327254708534116352.svg
@@ -60,7 +60,7 @@ See usage in the examples/vl53l0x_simpletest.py file.
 Documentation
 =============
 
-API documentation for this library can be found on `Read the Docs <https://circuitpython.readthedocs.io/projects/vl53l0x/en/latest/>`_.
+API documentation for this library can be found on `Read the Docs <https://docs.circuitpython.org/projects/vl53l0x/en/latest/>`_.
 
 Contributing
 ============
