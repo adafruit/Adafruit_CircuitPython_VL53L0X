@@ -145,6 +145,7 @@ class VL53L0X:
         self._i2c = i2c
         self._device = i2c_device.I2CDevice(i2c, address)
         self.io_timeout_s = io_timeout_s
+        self._data_available = False
         # Check identification registers for expected values.
         # From section 3.2 of the datasheet.
         if (
@@ -528,6 +529,15 @@ class VL53L0X:
             self.do_range_measurement()
         return self.read_range()
 
+    @property
+    def data_available(self):
+        """Check if data is available from the sensor. If true a call to .range
+        will return quickly. If false, calls to .range will wait for the sensor's
+        next reading to be available."""
+        if not self._data_available:
+            self._data_available = self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07 != 0
+        return self._data_available
+
     def do_range_measurement(self):
         """Perform a single reading of the range for an object in front of the
         sensor, but without return the distance.
@@ -553,13 +563,8 @@ class VL53L0X:
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
-    def read_range(self, max_ready_wait_us = None):
+    def read_range(self):
         """Return a range reading in millimeters.
-
-        If max_ready_wait_us is specified, and the sensor data is not ready
-        within that time, read_range will return -1, and you should call
-        read_range again in the future.
-
         Note: Avoid calling this directly. If you do single mode, you need
         to call `do_range_measurement` first. Or your program will stuck or
         timeout occurred.
@@ -567,18 +572,17 @@ class VL53L0X:
         # Adapted from readRangeContinuousMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         start = time.monotonic()
-        while (self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07) == 0:
+        while not self.data_available:
             if (
                 self.io_timeout_s > 0
                 and (time.monotonic() - start) >= self.io_timeout_s
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
-            if max_ready_wait_us is not None and (time.monotonic() - start)*1_000_000 >= max_ready_wait_us:
-                return -1
         # assumptions: Linearity Corrective Gain is 1000 (default)
         # fractional ranging is not enabled
         range_mm = self._read_u16(_RESULT_RANGE_STATUS + 10)
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
+        self._data_available = False
         return range_mm
 
     @property
