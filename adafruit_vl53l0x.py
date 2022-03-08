@@ -553,8 +553,12 @@ class VL53L0X:
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
-    def read_range(self):
+    def read_range(self, max_ready_wait_us = None):
         """Return a range reading in millimeters.
+
+        If max_ready_wait_us is specified, and the sensor data is not ready
+        within that time, read_range will return -1, and you should call
+        read_range again in the future.
 
         Note: Avoid calling this directly. If you do single mode, you need
         to call `do_range_measurement` first. Or your program will stuck or
@@ -569,6 +573,8 @@ class VL53L0X:
                 and (time.monotonic() - start) >= self.io_timeout_s
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
+            if max_ready_wait_us != None and (time.monotonic() - start)*1_000_000 >= max_ready_wait_us:
+                return -1
         # assumptions: Linearity Corrective Gain is 1000 (default)
         # fractional ranging is not enabled
         range_mm = self._read_u16(_RESULT_RANGE_STATUS + 10)
