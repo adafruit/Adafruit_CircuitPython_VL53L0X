@@ -34,7 +34,7 @@ import time
 from adafruit_bus_device import i2c_device
 from micropython import const
 
-__version__ = "0.0.0-auto.0"
+__version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X.git"
 
 # Configuration constants:
