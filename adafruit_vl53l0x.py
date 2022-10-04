@@ -34,6 +34,13 @@ import time
 from adafruit_bus_device import i2c_device
 from micropython import const
 
+try:
+    from typing import Optional, Tuple, Type
+    from types import TracebackType
+    from busio import I2C
+except ImportError:
+    pass
+
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X.git"
 
@@ -100,12 +107,12 @@ _VCSEL_PERIOD_PRE_RANGE = const(0)
 _VCSEL_PERIOD_FINAL_RANGE = const(1)
 
 
-def _decode_timeout(val):
+def _decode_timeout(val: int) -> float:
     # format: "(LSByte * 2^MSByte) + 1"
     return float(val & 0xFF) * math.pow(2.0, ((val & 0xFF00) >> 8)) + 1
 
 
-def _encode_timeout(timeout_mclks):
+def _encode_timeout(timeout_mclks: float) -> int:
     # format: "(LSByte * 2^MSByte) + 1"
     timeout_mclks = int(timeout_mclks) & 0xFFFF
     ls_byte = 0
@@ -119,12 +126,16 @@ def _encode_timeout(timeout_mclks):
     return 0
 
 
-def _timeout_mclks_to_microseconds(timeout_period_mclks, vcsel_period_pclks):
+def _timeout_mclks_to_microseconds(
+    timeout_period_mclks: int, vcsel_period_pclks: int
+) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
 
 
-def _timeout_microseconds_to_mclks(timeout_period_us, vcsel_period_pclks):
+def _timeout_microseconds_to_mclks(
+    timeout_period_us: int, vcsel_period_pclks: int
+) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_us * 1000) + (macro_period_ns // 2)) // macro_period_ns
 
@@ -140,7 +151,7 @@ class VL53L0X:
     # Is VL53L0X is currently continuous mode? (Needed by `range` property)
     _continuous_mode = False
 
-    def __init__(self, i2c, address=41, io_timeout_s=0):
+    def __init__(self, i2c: I2C, address: int = 41, io_timeout_s: float = 0) -> None:
         # pylint: disable=too-many-statements
         self._i2c = i2c
         self._device = i2c_device.I2CDevice(i2c, address)
@@ -304,7 +315,7 @@ class VL53L0X:
         # "restore the previous Sequence Config"
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
 
-    def _read_u8(self, address):
+    def _read_u8(self, address: int) -> int:
         # Read an 8-bit unsigned value from the specified 8-bit address.
         with self._device:
             self._BUFFER[0] = address & 0xFF
@@ -312,7 +323,7 @@ class VL53L0X:
             self._device.readinto(self._BUFFER, end=1)
         return self._BUFFER[0]
 
-    def _read_u16(self, address):
+    def _read_u16(self, address: int) -> int:
         # Read a 16-bit BE unsigned value from the specified 8-bit address.
         with self._device:
             self._BUFFER[0] = address & 0xFF
@@ -320,14 +331,14 @@ class VL53L0X:
             self._device.readinto(self._BUFFER)
         return (self._BUFFER[0] << 8) | self._BUFFER[1]
 
-    def _write_u8(self, address, val):
+    def _write_u8(self, address: int, val: int) -> None:
         # Write an 8-bit unsigned value to the specified 8-bit address.
         with self._device:
             self._BUFFER[0] = address & 0xFF
             self._BUFFER[1] = val & 0xFF
             self._device.write(self._BUFFER, end=2)
 
-    def _write_u16(self, address, val):
+    def _write_u16(self, address: int, val: int) -> None:
         # Write a 16-bit BE unsigned value to the specified 8-bit address.
         with self._device:
             self._BUFFER[0] = address & 0xFF
@@ -335,7 +346,7 @@ class VL53L0X:
             self._BUFFER[2] = val & 0xFF
             self._device.write(self._BUFFER)
 
-    def _get_spad_info(self):
+    def _get_spad_info(self) -> Tuple[int, bool]:
         # Get reference SPAD count and type, returned as a 2-tuple of
         # count and boolean is_aperture.  Based on code from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
@@ -368,7 +379,7 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         return (count, is_aperture)
 
-    def _perform_single_ref_calibration(self, vhv_init_byte):
+    def _perform_single_ref_calibration(self, vhv_init_byte: int) -> None:
         # based on VL53L0X_perform_single_ref_calibration() from ST API.
         self._write_u8(_SYSRANGE_START, 0x01 | vhv_init_byte & 0xFF)
         start = time.monotonic()
@@ -381,7 +392,7 @@ class VL53L0X:
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         self._write_u8(_SYSRANGE_START, 0x00)
 
-    def _get_vcsel_pulse_period(self, vcsel_period_type):
+    def _get_vcsel_pulse_period(self, vcsel_period_type: int) -> int:
         # pylint: disable=no-else-return
         # Disable should be removed when refactor can be tested
         if vcsel_period_type == _VCSEL_PERIOD_PRE_RANGE:
@@ -392,7 +403,7 @@ class VL53L0X:
             return (((val) + 1) & 0xFF) << 1
         return 255
 
-    def _get_sequence_step_enables(self):
+    def _get_sequence_step_enables(self) -> Tuple[bool, bool, bool, bool, bool]:
         # based on VL53L0X_GetSequenceStepEnables() from ST API
         sequence_config = self._read_u8(_SYSTEM_SEQUENCE_CONFIG)
         tcc = (sequence_config >> 4) & 0x1 > 0
@@ -402,7 +413,9 @@ class VL53L0X:
         final_range = (sequence_config >> 7) & 0x1 > 0
         return (tcc, dss, msrc, pre_range, final_range)
 
-    def _get_sequence_step_timeouts(self, pre_range):
+    def _get_sequence_step_timeouts(
+        self, pre_range: int
+    ) -> Tuple[int, int, int, int, float]:
         # based on get_sequence_step_timeout() from ST API but modified by
         # pololu here:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
@@ -439,21 +452,21 @@ class VL53L0X:
         )
 
     @property
-    def signal_rate_limit(self):
+    def signal_rate_limit(self) -> float:
         """The signal rate limit in mega counts per second."""
         val = self._read_u16(_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT)
         # Return value converted from 16-bit 9.7 fixed point to float.
         return val / (1 << 7)
 
     @signal_rate_limit.setter
-    def signal_rate_limit(self, val):
+    def signal_rate_limit(self, val: float) -> None:
         assert 0.0 <= val <= 511.99
         # Convert to 16-bit 9.7 fixed point value from a float.
         val = int(val * (1 << 7))
         self._write_u16(_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, val)
 
     @property
-    def measurement_timing_budget(self):
+    def measurement_timing_budget(self) -> int:
         """The measurement timing budget in microseconds."""
         budget_us = 1910 + 960  # Start overhead + end overhead.
         tcc, dss, msrc, pre_range, final_range = self._get_sequence_step_enables()
@@ -473,7 +486,7 @@ class VL53L0X:
         return budget_us
 
     @measurement_timing_budget.setter
-    def measurement_timing_budget(self, budget_us):
+    def measurement_timing_budget(self, budget_us: int) -> None:
         # pylint: disable=too-many-locals
         assert budget_us >= 20000
         used_budget_us = 1320 + 960  # Start (diff from get) + end overhead
@@ -494,7 +507,7 @@ class VL53L0X:
             # "Note that the final range timeout is determined by the timing
             # budget and the sum of all other timeouts within the sequence.
             # If there is no room for the final range timeout, then an error
-            # will be set. Otherwise the remaining time will be applied to
+            # will be set. Otherwise, the remaining time will be applied to
             # the final range."
             if used_budget_us > budget_us:
                 raise ValueError("Requested timeout too big.")
@@ -511,14 +524,14 @@ class VL53L0X:
             self._measurement_timing_budget_us = budget_us
 
     @property
-    def distance(self):
+    def distance(self) -> float:
         """Perform a single reading of the range for an object in front of
         the sensor and return the distance in centimeters.
         """
         return self.range / 10
 
     @property
-    def range(self):
+    def range(self) -> int:
         """Perform a single (or continuous if `start_continuous` called)
         reading of the range for an object in front of the sensor and
         return the distance in millimeters.
@@ -530,7 +543,7 @@ class VL53L0X:
         return self.read_range()
 
     @property
-    def data_ready(self):
+    def data_ready(self) -> bool:
         """Check if data is available from the sensor. If true a call to .range
         will return quickly. If false, calls to .range will wait for the sensor's
         next reading to be available."""
@@ -538,7 +551,7 @@ class VL53L0X:
             self._data_ready = self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07 != 0
         return self._data_ready
 
-    def do_range_measurement(self):
+    def do_range_measurement(self) -> None:
         """Perform a single reading of the range for an object in front of the
         sensor, but without return the distance.
         """
@@ -563,7 +576,7 @@ class VL53L0X:
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
-    def read_range(self):
+    def read_range(self) -> int:
         """Return a range reading in millimeters.
         Note: Avoid calling this directly. If you do single mode, you need
         to call `do_range_measurement` first. Or your program will stuck or
@@ -586,24 +599,29 @@ class VL53L0X:
         return range_mm
 
     @property
-    def is_continuous_mode(self):
+    def is_continuous_mode(self) -> bool:
         """Is the sensor currently in continuous mode?"""
         return self._continuous_mode
 
-    def continuous_mode(self):
+    def continuous_mode(self) -> "VL53L0X":
         """Activate the continuous mode manager"""
         return self
 
-    def __enter__(self):
+    def __enter__(self) -> "VL53L0X":
         """For continuous mode manager, called when used on `with` keyword"""
         self.start_continuous()
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         """For continuous mode manager, called at the end of `with` scope"""
         self.stop_continuous()
 
-    def start_continuous(self):
+    def start_continuous(self) -> None:
         """Perform a continuous reading of the range for an object in front of
         the sensor.
         """
@@ -629,7 +647,7 @@ class VL53L0X:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._continuous_mode = True
 
-    def stop_continuous(self):
+    def stop_continuous(self) -> None:
         """Stop continuous readings."""
         # Adapted from stopContinuous in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
@@ -647,7 +665,7 @@ class VL53L0X:
         # restore the sensor to single ranging mode
         self.do_range_measurement()
 
-    def set_address(self, new_address):
+    def set_address(self, new_address: int) -> None:
         """Set a new I2C address to the instantaited object. This is only called when using
         multiple VL53L0X sensors on the same I2C bus (SDA & SCL pins). See also the
         `example <examples.html#multiple-vl53l0x-on-same-i2c-bus>`_ for proper usage.
