@@ -21,9 +21,12 @@ When you use continuous mode, the sensor will always do range measurement after 
 completes. So when you want to get the distance from both of the device, you don't
 need to wait 400ms, just 200ms for both of the sensors.
 """
+
 import time
+
 import board
 from digitalio import DigitalInOut
+
 from adafruit_vl53l0x import VL53L0X
 
 # declare the singleton variable for the default I2C bus
@@ -82,7 +85,7 @@ def detect_range(count=5):
     """take count=5 samples"""
     while count:
         for index, sensor in enumerate(vl53):
-            print("Sensor {} Range: {}mm".format(index + 1, sensor.range))
+            print(f"Sensor {index + 1} Range: {sensor.range}mm")
         time.sleep(1.0)
         count -= 1
 

@@ -25,5 +25,5 @@ vl53 = adafruit_vl53l0x.VL53L0X(i2c)
 
 # Main loop will read the range and print it every second.
 while True:
-    print("Range: {0}mm".format(vl53.range))
+    print(f"Range: {vl53.range}mm")
     time.sleep(1.0)
