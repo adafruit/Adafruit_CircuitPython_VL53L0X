@@ -28,6 +28,7 @@ Implementation Notes
   https://github.com/adafruit/circuitpython/releases
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
 """
+
 import math
 import time
 
@@ -35,8 +36,9 @@ from adafruit_bus_device import i2c_device
 from micropython import const
 
 try:
-    from typing import Optional, Tuple, Type
     from types import TracebackType
+    from typing import Optional, Tuple, Type
+
     from busio import I2C
 except ImportError:
     pass
@@ -126,16 +128,12 @@ def _encode_timeout(timeout_mclks: float) -> int:
     return 0
 
 
-def _timeout_mclks_to_microseconds(
-    timeout_period_mclks: int, vcsel_period_pclks: int
-) -> int:
+def _timeout_mclks_to_microseconds(timeout_period_mclks: int, vcsel_period_pclks: int) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
 
 
-def _timeout_microseconds_to_mclks(
-    timeout_period_us: int, vcsel_period_pclks: int
-) -> int:
+def _timeout_microseconds_to_mclks(timeout_period_us: int, vcsel_period_pclks: int) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_us * 1000) + (macro_period_ns // 2)) // macro_period_ns
 
@@ -152,7 +150,6 @@ class VL53L0X:
     _continuous_mode = False
 
     def __init__(self, i2c: I2C, address: int = 41, io_timeout_s: float = 0) -> None:
-        # pylint: disable=too-many-statements
         self._i2c = i2c
         self._device = i2c_device.I2CDevice(i2c, address)
         self.io_timeout_s = io_timeout_s
@@ -164,9 +161,7 @@ class VL53L0X:
             or self._read_u8(0xC1) != 0xAA
             or self._read_u8(0xC2) != 0x10
         ):
-            raise RuntimeError(
-                "Failed to find expected ID register values. Check wiring!"
-            )
+            raise RuntimeError("Failed to find expected ID register values. Check wiring!")
         # Initialize access to the sensor.  This is based on the logic from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         # Set I2C standard mode.
@@ -301,9 +296,7 @@ class VL53L0X:
 
         self._write_u8(_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x04)
         gpio_hv_mux_active_high = self._read_u8(_GPIO_HV_MUX_ACTIVE_HIGH)
-        self._write_u8(
-            _GPIO_HV_MUX_ACTIVE_HIGH, gpio_hv_mux_active_high & ~0x10
-        )  # active low
+        self._write_u8(_GPIO_HV_MUX_ACTIVE_HIGH, gpio_hv_mux_active_high & ~0x10)  # active low
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         self._measurement_timing_budget_us = self.measurement_timing_budget
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
@@ -363,10 +356,7 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while self._read_u8(0x83) == 0x00:
-            if (
-                self.io_timeout_s > 0
-                and (time.monotonic() - start) >= self.io_timeout_s
-            ):
+            if self.io_timeout_s > 0 and (time.monotonic() - start) >= self.io_timeout_s:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._write_u8(0x83, 0x01)
         tmp = self._read_u8(0x92)
@@ -384,17 +374,12 @@ class VL53L0X:
         self._write_u8(_SYSRANGE_START, 0x01 | vhv_init_byte & 0xFF)
         start = time.monotonic()
         while (self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07) == 0:
-            if (
-                self.io_timeout_s > 0
-                and (time.monotonic() - start) >= self.io_timeout_s
-            ):
+            if self.io_timeout_s > 0 and (time.monotonic() - start) >= self.io_timeout_s:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         self._write_u8(_SYSRANGE_START, 0x00)
 
     def _get_vcsel_pulse_period(self, vcsel_period_type: int) -> int:
-        # pylint: disable=no-else-return
-        # Disable should be removed when refactor can be tested
         if vcsel_period_type == _VCSEL_PERIOD_PRE_RANGE:
             val = self._read_u8(_PRE_RANGE_CONFIG_VCSEL_PERIOD)
             return (((val) + 1) & 0xFF) << 1
@@ -413,31 +398,19 @@ class VL53L0X:
         final_range = (sequence_config >> 7) & 0x1 > 0
         return (tcc, dss, msrc, pre_range, final_range)
 
-    def _get_sequence_step_timeouts(
-        self, pre_range: int
-    ) -> Tuple[int, int, int, int, float]:
+    def _get_sequence_step_timeouts(self, pre_range: int) -> Tuple[int, int, int, int, float]:
         # based on get_sequence_step_timeout() from ST API but modified by
         # pololu here:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        pre_range_vcsel_period_pclks = self._get_vcsel_pulse_period(
-            _VCSEL_PERIOD_PRE_RANGE
-        )
+        pre_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VCSEL_PERIOD_PRE_RANGE)
         msrc_dss_tcc_mclks = (self._read_u8(_MSRC_CONFIG_TIMEOUT_MACROP) + 1) & 0xFF
         msrc_dss_tcc_us = _timeout_mclks_to_microseconds(
             msrc_dss_tcc_mclks, pre_range_vcsel_period_pclks
         )
-        pre_range_mclks = _decode_timeout(
-            self._read_u16(_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI)
-        )
-        pre_range_us = _timeout_mclks_to_microseconds(
-            pre_range_mclks, pre_range_vcsel_period_pclks
-        )
-        final_range_vcsel_period_pclks = self._get_vcsel_pulse_period(
-            _VCSEL_PERIOD_FINAL_RANGE
-        )
-        final_range_mclks = _decode_timeout(
-            self._read_u16(_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI)
-        )
+        pre_range_mclks = _decode_timeout(self._read_u16(_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI))
+        pre_range_us = _timeout_mclks_to_microseconds(pre_range_mclks, pre_range_vcsel_period_pclks)
+        final_range_vcsel_period_pclks = self._get_vcsel_pulse_period(_VCSEL_PERIOD_FINAL_RANGE)
+        final_range_mclks = _decode_timeout(self._read_u16(_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI))
         if pre_range:
             final_range_mclks -= pre_range_mclks
         final_range_us = _timeout_mclks_to_microseconds(
@@ -487,7 +460,6 @@ class VL53L0X:
 
     @measurement_timing_budget.setter
     def measurement_timing_budget(self, budget_us: int) -> None:
-        # pylint: disable=too-many-locals
         assert budget_us >= 20000
         used_budget_us = 1320 + 960  # Start (diff from get) + end overhead
         tcc, dss, msrc, pre_range, final_range = self._get_sequence_step_enables()
@@ -570,10 +542,7 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
-            if (
-                self.io_timeout_s > 0
-                and (time.monotonic() - start) >= self.io_timeout_s
-            ):
+            if self.io_timeout_s > 0 and (time.monotonic() - start) >= self.io_timeout_s:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
     def read_range(self) -> int:
@@ -586,10 +555,7 @@ class VL53L0X:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         start = time.monotonic()
         while not self.data_ready:
-            if (
-                self.io_timeout_s > 0
-                and (time.monotonic() - start) >= self.io_timeout_s
-            ):
+            if self.io_timeout_s > 0 and (time.monotonic() - start) >= self.io_timeout_s:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         # assumptions: Linearity Corrective Gain is 1000 (default)
         # fractional ranging is not enabled
@@ -640,10 +606,7 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         start = time.monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
-            if (
-                self.io_timeout_s > 0
-                and (time.monotonic() - start) >= self.io_timeout_s
-            ):
+            if self.io_timeout_s > 0 and (time.monotonic() - start) >= self.io_timeout_s:
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._continuous_mode = True
 

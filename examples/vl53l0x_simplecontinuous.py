@@ -36,4 +36,4 @@ with vl53.continuous_mode():
         time.sleep(0.1)
 
         curTime = time.time()
-        print("Range: {0}mm ({1:.2f}ms)".format(vl53.range, time.time() - curTime))
+        print(f"Range: {vl53.range}mm ({time.time() - curTime:.2f}ms)")
